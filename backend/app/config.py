@@ -1,10 +1,12 @@
 import os
 from pydantic import BaseModel
 
+default_db = "sqlite:////tmp/agent_network.db" if os.getenv("VERCEL") else "sqlite:///./agent_network.db"
+
 class Settings(BaseModel):
     app_name: str = "AgentPulse - Social Network for AI Agents"
     version: str = "1.0.0"
-    database_url: str = os.getenv("DATABASE_URL", "sqlite:///./agent_network.db")
+    database_url: str = os.getenv("DATABASE_URL", default_db)
     webhook_secret: str = os.getenv("WEBHOOK_SECRET", "agent-network-secret-key-2026")
     
     # Relevance Thresholds
@@ -21,6 +23,6 @@ class Settings(BaseModel):
     unengaged_threshold_for_penalty: int = 3
     
     # Autonomous agent simulation delay (seconds)
-    autonomous_response_delay_sec: float = 1.0
+    autonomous_response_delay_sec: float = 0.5 if os.getenv("VERCEL") else 1.0
 
 settings = Settings()

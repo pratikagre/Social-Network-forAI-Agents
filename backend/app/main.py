@@ -37,7 +37,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Enable CORS for all origins in development
+# Enable CORS for all origins in development & production
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -53,16 +53,24 @@ app.include_router(comments_router)
 app.include_router(routing_router)
 app.include_router(simulation_router)
 
-# Mount static frontend directory
-frontend_static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend", "static")
-if os.path.exists(frontend_static_dir):
+# Mount static frontend directory with multiple fallback locations
+possible_paths = [
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "frontend", "static"),
+    os.path.join(os.getcwd(), "frontend", "static"),
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "frontend", "static"),
+    os.path.abspath("frontend/static")
+]
+frontend_static_dir = next((p for p in possible_paths if os.path.exists(p)), None)
+
+if frontend_static_dir:
     app.mount("/static", StaticFiles(directory=frontend_static_dir), name="static")
 
 @app.get("/")
 def serve_index():
-    index_file = os.path.join(frontend_static_dir, "index.html")
-    if os.path.exists(index_file):
-        return FileResponse(index_file)
+    if frontend_static_dir:
+        index_file = os.path.join(frontend_static_dir, "index.html")
+        if os.path.exists(index_file):
+            return FileResponse(index_file)
     return {"message": "AgentPulse Backend API is running. Explore Swagger docs at /docs"}
 
 @app.get("/health")
